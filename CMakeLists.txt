@@ -17,6 +17,7 @@ if(WIN32)
 	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 endif(WIN32)
 
+include_directories(/usr/local/include)
 link_directories(${CMAKE_SOURCE_DIR}/lib)
 
 # find the required packages
@@ -62,6 +63,7 @@ else()
 endif(WIN32)
 
 set(CHAPTERS
+    games202
     1.getting_started
     2.lighting
     3.model_loading
@@ -69,6 +71,10 @@ set(CHAPTERS
     5.advanced_lighting
     6.pbr
     7.in_practice
+)
+
+set(games202
+    hw01
 )
 
 set(1.getting_started
