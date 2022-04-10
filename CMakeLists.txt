@@ -74,6 +74,7 @@ set(CHAPTERS
 )
 
 set(games202
+    gui
     hw01
 )
 
@@ -199,6 +200,20 @@ set(LIBS ${LIBS} STB_IMAGE)
 
 add_library(GLAD "src/glad.c")
 set(LIBS ${LIBS} GLAD)
+
+# imgui lib
+include_directories(${CMAKE_SOURCE_DIR}/includes/imgui)
+set(IMGUI_DIR "src")
+set(IMGUI_SOURCES 
+    ${IMGUI_DIR}/imgui.cpp 
+    ${IMGUI_DIR}/imgui_demo.cpp 
+    ${IMGUI_DIR}/imgui_draw.cpp
+    ${IMGUI_DIR}/imgui_tables.cpp
+    ${IMGUI_DIR}/imgui_widgets.cpp
+    ${IMGUI_DIR}/imgui_impl_glfw.cpp
+    ${IMGUI_DIR}/imgui_impl_opengl3.cpp)
+add_library(IMGUI ${IMGUI_SOURCES})
+set(LIBS ${LIBS} IMGUI)
 
 macro(makeLink src dest target)
   add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink ${src} ${dest}  DEPENDS  ${dest} COMMENT "mklink ${src} -> ${dest}")
