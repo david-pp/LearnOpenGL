@@ -75,7 +75,7 @@ set(CHAPTERS
 
 set(games202
     gui
-    hw01
+    hw0
 )
 
 set(1.getting_started

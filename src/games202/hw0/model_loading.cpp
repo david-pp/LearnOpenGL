@@ -29,11 +29,19 @@ const unsigned int SCR_HEIGHT = 600;
 Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
+bool firstMouse = false;
 
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+// model   
+glm::vec3 modleScale(1.0, 1.0, 1.0);
+glm::vec3 modleTrans(0, 0, 0);
+
+// lighting
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
 int main()
 {
@@ -92,7 +100,7 @@ int main()
     io.Fonts->AddFontFromFileTTF("../../resources/fonts/Cousine-Regular.ttf", 15.0f);
 
     // Our state
-    bool show_demo_window = true;
+    bool show_demo_window = false;
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -105,13 +113,87 @@ int main()
 
     // build and compile shaders
     // -------------------------
+    Shader lightCubeShader("light_cube.vs", "light_cube.fs");
     Shader ourShader("1.model_loading.vs", "1.model_loading.fs");
 
     // load models
     // -----------
     Model ourModel(FileSystem::getPath("resources/objects/mary/Marry.obj"));
 
-    
+
+    // set up vertex data (and buffer(s)) and configure vertex attributes
+    // ------------------------------------------------------------------
+    float vertices[] = {
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    };
+    // first, configure the cube's VAO (and VBO)
+    unsigned int VBO, cubeVAO;
+    glGenVertexArrays(1, &cubeVAO);
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindVertexArray(cubeVAO);
+
+    // position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    // normal attribute
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+
+    // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
+    unsigned int lightCubeVAO;
+    glGenVertexArrays(1, &lightCubeVAO);
+    glBindVertexArray(lightCubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -152,7 +234,33 @@ int main()
             static float f = 0.0f;
             static int counter = 0;
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+            ImGui::Begin("GAMES202!");                          // Create a window called "Hello, world!" and append into it.
+
+
+            ImGui::Text("Model Properties: ");  
+            if (ImGui::TreeNode("Translation"))
+            {
+                ImGui::InputScalar("x", ImGuiDataType_Float, &modleTrans.x, nullptr);
+                ImGui::InputScalar("y", ImGuiDataType_Float, &modleTrans.y, nullptr);
+                ImGui::InputScalar("z", ImGuiDataType_Float, &modleTrans.z, nullptr);
+                ImGui::SliderFloat("float", &f, 0.0f, 1.0f);  
+                ImGui::TreePop();
+            }
+
+            if (ImGui::TreeNode("Scale"))
+            {
+                static bool scale_same_time = true;
+                ImGui::Checkbox("same time", &scale_same_time);  
+                ImGui::SliderFloat("x", &modleScale.x, 0.0f, 4.0f);  
+                ImGui::SliderFloat("y", &modleScale.y, 0.0f, 4.0f);  
+                ImGui::SliderFloat("z", &modleScale.z, 0.0f, 4.0f); 
+                if (scale_same_time)
+                    modleScale.y = modleScale.z = modleScale.x; 
+                ImGui::TreePop();
+            }
+
+            ImGui::Text("Light Properties: ");  
+            ImGui::ColorEdit3("Light Color", (float*)&lightColor);
 
             ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
@@ -167,6 +275,8 @@ int main()
             ImGui::Text("counter = %d", counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            
+           
             ImGui::End();
         }
 
@@ -190,6 +300,10 @@ int main()
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
+        ourShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        ourShader.setVec3("lightColor", lightColor);
+        ourShader.setVec3("lightPos", lightPos);
+        ourShader.setVec3("viewPos", camera.Position);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -199,13 +313,28 @@ int main()
 
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        model = glm::translate(model, modleTrans); // translate it down so it's at the center of the scene
+        model = glm::scale(model, modleScale);	// it's a bit too big for our scene, so scale it down
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
 
+        // render the light cube
+        // change the light's position values over time (can be done anywhere in the render loop actually, but try to do it at least before using the light source positions)
+        lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+        lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;
 
-       
+        lightCubeShader.use();
+        lightCubeShader.setVec3("lightColor", lightColor);
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lightCubeShader.setMat4("model", model);
+        glBindVertexArray(lightCubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // render the imgui
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -284,3 +413,4 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
+
